@@ -100,10 +100,10 @@ video{
 
         rec_start.onclick = function() {
           video.play();
-          console.log(video)
           var streams = getAudioContext(video);
           video_stream.addTrack(canvas.captureStream().getTracks()[0]);
           video_stream.addTrack(streams.getAudioTracks()[0]);
+
           console.log(video_stream)
           media_recorder = new MediaRecorder(video_stream);
           media_recorder.start();
@@ -138,19 +138,25 @@ video{
           splitter.connect(video_gain_node);
           splitter2.connect(camera_gain_node);
 
-          var merger = audioContext.createChannelMerger(4);
+          var merger = audioContext.createChannelMerger(2);
+
+
+console.log(video_gain_node)
           video_gain_node.connect(
             merger,
             0,
             0
+          );
+          video_gain_node.connect(
+            merger,
+            0,
+            1
           );
           camera_gain_node.connect(
             merger,
             0,
             0
           );
-          video_gain_node.connect(audioContext.destination);
-
           var dist = audioContext.createMediaStreamDestination();
           merger.connect(dist);
           return dist.stream;
