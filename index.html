@@ -81,7 +81,6 @@ video{
         var canvas = document.getElementById("canvas");
         (canvas.width = video.width), (canvas.height = video.height);
         var ctx = canvas.getContext("2d");
-        var audioContext = new AudioContext();
         var camera_stream;
         var mediaConstraints = {
           video: { frameRate: { ideal: 10, max: 15 } },
@@ -103,8 +102,11 @@ video{
           var streams = getAudioContext(video);
           video_stream.addTrack(canvas.captureStream().getTracks()[0]);
           video_stream.addTrack(streams.getAudioTracks()[0]);
+          video_stream.addTrack(streams.getAudioTracks()[0]);
 
-          console.log(video_stream)
+
+          console.log(video_stream.getAudioTracks())
+
           media_recorder = new MediaRecorder(video_stream);
           media_recorder.start();
           media_recorder.ondataavailable = function(e) {
@@ -122,43 +124,34 @@ video{
         };
 
         function getAudioContext(_video) {
-          var source = audioContext.createMediaElementSource(video);
-          var source2 = audioContext.createMediaStreamSource(camera_stream);
 
-          var splitter = audioContext.createChannelSplitter(2);
-          source.connect(splitter);
-          var splitter2 = audioContext.createChannelSplitter(2);
-          source2.connect(splitter2);
-
-          var video_gain_node = audioContext.createGain();
-          var camera_gain_node = audioContext.createGain();
+          let audioContext = new AudioContext();
+          let splitter = audioContext.createChannelSplitter(2);
+          let video_gain_node = audioContext.createGain();
           video_gain_node.gain.value = 1;
-          camera_gain_node.gain.value = 1;
-
-          splitter.connect(video_gain_node);
-          splitter2.connect(camera_gain_node);
-
-          var merger = audioContext.createChannelMerger(2);
-
-
-console.log(video_gain_node)
-          video_gain_node.connect(
-            merger,
-            0,
-            0
-          );
-          video_gain_node.connect(
-            merger,
-            0,
-            1
-          );
-          camera_gain_node.connect(
-            merger,
-            0,
-            0
-          );
+          let merger = audioContext.createChannelMerger(2);
           var dist = audioContext.createMediaStreamDestination();
-          merger.connect(dist);
+
+          let sources = [video,camera_stream]
+
+          sources.forEach((videoSource,index) =>{
+
+            let source;
+            if(0 === index){
+              source = audioContext.createMediaElementSource(videoSource);
+            }else{
+              source = audioContext.createMediaStreamSource(videoSource);
+            }
+
+            source.connect(splitter);
+            splitter.connect(video_gain_node);
+            video_gain_node.connect(
+              merger,
+              0,
+              0
+            );
+            merger.connect(dist);
+          })
           return dist.stream;
         }
 
